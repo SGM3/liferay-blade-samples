@@ -1,4 +1,18 @@
 <%@ include file="/init.jsp" %>
+<%
+int curIndexForDocs = 0;
+%>
+
+<portlet:actionURL name="mySearchBar" var="portletURL" />
+
+<form action="<%= portletURL %>" name="example" method="POST">
+    <input
+        name="<portlet:namespace/>queryString"
+        type="text"
+        value="${queryString}"
+        />
+    </input>
+</form>
 
 <liferay-ui:search-container delta="10">
 	<liferay-ui:search-container-results results="${docFromSearchResults}"/>
@@ -8,6 +22,12 @@
 		keyProperty="UID"
 		modelVar="doc"
 	>
+
+		<liferay-ui:search-container-column-text
+			name="rownum"
+			value="<%= ++curIndexForDocs +"" %>"
+		/>
+
 		<liferay-ui:search-container-column-text
 			name="name"
 			value="<%= "example" %>"

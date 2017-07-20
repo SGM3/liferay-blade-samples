@@ -5,12 +5,21 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
 import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.Field;
+import com.liferay.portal.kernel.search.facet.AssetEntriesFacet;
+import com.liferay.portal.kernel.search.facet.ScopeFacet;
+import com.liferay.portal.kernel.util.StringPool;
+import com.liferay.portal.search.web.facet.SearchFacet;
+import com.liferay.portal.search.web.internal.display.context.SearchDisplayContext;
+import com.liferay.portal.search.web.internal.display.context.SearchDisplayContextFactory;
+import com.liferay.portal.search.web.portlet.shared.search.PortletSharedSearchContributor;
+import com.liferay.portal.search.web.portlet.shared.search.PortletSharedSearchRequest;
+import com.liferay.portal.search.web.portlet.shared.search.PortletSharedSearchResponse;
+import com.liferay.portal.search.web.portlet.shared.search.PortletSharedSearchSettings;
+import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
-import javax.portlet.Portlet;
-import javax.portlet.PortletException;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
+import javax.portlet.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,20 +40,46 @@ import java.util.*;
 		"javax.portlet.display-name=search-facet-displayer-portlet Portlet",
 		"javax.portlet.init-param.template-path=/",
 		"javax.portlet.init-param.view-template=/view.jsp",
-		"javax.portlet.security-role-ref=power-user,user"
+		"javax.portlet.security-role-ref=power-user,user",
+		Constants.SERVICE_RANKING + "=100"
+
 	},
-	service = Portlet.class
+	service = {Portlet.class, PortletSharedSearchContributor.class}
 )
-public class SearchFacetDisplayerPortlet extends MVCPortlet {
+public class SearchFacetDisplayerPortlet extends MVCPortlet implements PortletSharedSearchContributor {
+
+	@Override
+	public void contribute(PortletSharedSearchSettings portletSharedSearchSettings) {
+		portletSharedSearchSettings.setKeywords(queryString);
+		portletSharedSearchSettings.setPaginationDelta(Integer.MAX_VALUE);
+		portletSharedSearchSettings.addFacet(new ScopeFacet(portletSharedSearchSettings.getSearchContext()));
+		portletSharedSearchSettings.addFacet(new AssetEntriesFacet(portletSharedSearchSettings.getSearchContext()));
+	}
 
 	@Override
 	public void doView(RenderRequest renderRequest, RenderResponse renderResponse) throws IOException, PortletException {
-		//List<Document> docFromSearchResults = new ArrayList<>();
-		List<Document> docFromSearchResults = _mockResultSet(100);
+		PortletSharedSearchResponse portletSharedSearchResponse =
+			portletSharedSearchRequest.search(renderRequest);
+		SearchDisplayContext sdc =
+			searchDisplayContextFactory.create(
+				renderRequest,renderResponse, renderRequest.getPreferences());
+
+		List<SearchFacet> enabledSearchFacets = sdc.getEnabledSearchFacets();
+
+		List<Document> docFromSearchResults = portletSharedSearchResponse.getDocuments();
 		String jsonStr = '\''+ DocumentJsonifier.listToJson(docFromSearchResults) + '\'';
+
 		renderRequest.setAttribute("docFromSearchResults", docFromSearchResults);
 		renderRequest.setAttribute("jsonStringSearchResults", jsonStr);
+
+		renderRequest.setAttribute("queryString", queryString);
 		super.doView(renderRequest, renderResponse);
+	}
+
+	@Override
+	public void processAction(ActionRequest actionRequest, ActionResponse actionResponse) throws IOException, PortletException {
+		queryString = actionRequest.getParameter("queryString");
+		actionResponse.setRenderParameter("queryString", queryString);
 	}
 
 	private List<Document> _mockResultSet(int count){
@@ -561,6 +596,13 @@ public class SearchFacetDisplayerPortlet extends MVCPortlet {
 		}
 		return  mockResultSet;
 	}
+
+	@Reference
+	protected PortletSharedSearchRequest portletSharedSearchRequest;
+	@Reference
+	protected SearchDisplayContextFactory searchDisplayContextFactory;
+
+	private String queryString = StringPool.BLANK;
 
 	private static final Log _log = LogFactoryUtil.getLog(SearchFacetDisplayerPortlet.class);
 }
