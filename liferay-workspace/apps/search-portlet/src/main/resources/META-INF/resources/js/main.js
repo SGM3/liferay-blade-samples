@@ -37,12 +37,14 @@ function graphCallBack(data, x, y, g, axisProperties) {
 
   g.append("g")
       .attr("class", "axis axis--y")
-      .call(d3.axisLeft(y).ticks(10, axisProperties['axisyd3format']))
-    .append("text")
+      .call(d3.axisLeft(y).ticks(10, axisProperties['axisyd3format']));
+
+  g.append("text")
       .attr("transform", "rotate(-90)")
-      .attr("y", 6)
-      .attr("dy", "0.71em")
-      .attr("text-anchor", "end")
+      .attr("y", -60)
+      .attr("x",0 - (maxHeight / 2))
+      .attr("dy", "1em")
+      .style("text-anchor", "middle")
       .text(axisProperties['axisylabel']);
 
   g.selectAll(".bar")

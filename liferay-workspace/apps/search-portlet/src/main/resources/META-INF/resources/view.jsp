@@ -1,6 +1,7 @@
 <%@ include file="/init.jsp" %>
 <%
 int curIndexForDocs = 0;
+List<String> userSelectedTermValues = (List<String>)renderRequest.getAttribute("userSelectedTermValues");
 %>
 
 <portlet:actionURL name="mySearchBar" var="portletURL" />
@@ -11,7 +12,17 @@ int curIndexForDocs = 0;
         type="text"
         value="${queryString}"
         />
-    </input>
+    </input><br>
+    <c:forEach items="${facetsWithAvailableTerms}" var="curFacet">
+        <c:forEach items="${curFacet.value}" var="termEntry" varStatus = "status">
+        <%
+        TermCollector termEntry = (TermCollector)pageContext.findAttribute("termEntry");
+        %>
+        <input type="checkbox" name="<portlet:namespace/>${curFacet.key}" value="${termEntry.term}" <%= userSelectedTermValues.contains(termEntry.getTerm())?"checked":""%>> ${termEntry.term} (${termEntry.frequency})<br>
+        </c:forEach>
+        <br>
+    </c:forEach>
+    <input type="submit" value="Submit">
 </form>
 
 <liferay-ui:search-container delta="10">
@@ -185,7 +196,7 @@ var axisProperties = {
 }
 jsonData = JSON.parse(jsonData);
 
-var margins = {top: 20, right: 20, bottom: 150, left: 50};
+var margins = {top: 20, right: 20, bottom: 150, left: 150};
 
 renderHistogram("#graph-container", jsonData, axisProperties, margins)
 //renderHistogram("#graph-container", jsonData, axisProperties, margins)
