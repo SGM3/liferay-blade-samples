@@ -70,6 +70,7 @@ public class SearchFacetDisplayerPortlet extends MVCPortlet implements PortletSh
 		userFacetBuilder.setFrequencyThreshold(FREQ_THRESHOLD);
 		userFacetBuilder.setMaxTerms(MAX_TERMS);
 		userFacetBuilder.setSearchContext(sc);
+		userFacetBuilder.setSelectedUsers(userFacetValues);
 
 		return userFacetBuilder.build();
 	}
@@ -114,9 +115,10 @@ public class SearchFacetDisplayerPortlet extends MVCPortlet implements PortletSh
 		String userFacetKey = getUserFacetKey();
 		String[] selectValues = renderRequest.getParameterValues(userFacetKey);
 		List<String> userSelectedTermValues =
-			selectValues==null?Arrays.asList():Arrays.asList(selectValues);
-
-		renderRequest.setAttribute("userSelectedTermValues", userSelectedTermValues);
+			selectValues==null? Collections.emptyList() :Arrays.asList(selectValues);
+		userFacetValues = selectValues==null?new String[0]:selectValues;
+		renderRequest.setAttribute(
+			"userSelectedTermValues", userSelectedTermValues);
 
 		List<Document> docFromSearchResults =
 			portletSharedSearchResponse.getDocuments();
@@ -170,9 +172,8 @@ public class SearchFacetDisplayerPortlet extends MVCPortlet implements PortletSh
 	public void processAction(ActionRequest actionRequest, ActionResponse actionResponse) throws IOException, PortletException {
 		String userFacetKey = getUserFacetKey();
 		String [] requestUserFacetValues = actionRequest.getParameterValues(userFacetKey);
-		if (requestUserFacetValues != null){
-			userFacetValues = requestUserFacetValues;
-		}
+		userFacetValues =
+			requestUserFacetValues == null?new String[0]:requestUserFacetValues;
 		queryString = actionRequest.getParameter("queryString");
 		actionResponse.setRenderParameter("queryString", queryString);
 		actionResponse.setRenderParameter(userFacetKey, userFacetValues);
