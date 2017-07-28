@@ -1,6 +1,20 @@
+/**
+ * Copyright (c) 2000-present Liferay, Inc. All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
+ */
 package search.facet.displayer.portlet.portlet;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
@@ -18,16 +32,34 @@ import com.liferay.portal.search.web.portlet.shared.search.PortletSharedSearchCo
 import com.liferay.portal.search.web.portlet.shared.search.PortletSharedSearchRequest;
 import com.liferay.portal.search.web.portlet.shared.search.PortletSharedSearchResponse;
 import com.liferay.portal.search.web.portlet.shared.search.PortletSharedSearchSettings;
-import org.osgi.framework.Constants;
-import org.osgi.service.component.annotations.*;
 
-import javax.portlet.*;
 import java.io.IOException;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
+import javax.portlet.ActionRequest;
+import javax.portlet.ActionResponse;
+import javax.portlet.Portlet;
+import javax.portlet.PortletException;
+import javax.portlet.RenderRequest;
+import javax.portlet.RenderResponse;
+
+import org.osgi.framework.Constants;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
+
 /**
- * @author Administrator
+ * @author Shanon Mathai
  */
 @Component(
 	immediate = true,
@@ -36,7 +68,7 @@ import java.util.stream.Collectors;
 		"com.liferay.portlet.header-portlet-css=/css/main.css",
 		"com.liferay.portlet.header-portlet-javascript=/js/main.js",
 		"com.liferay.portlet.instanceable=true",
-		"javax.portlet.display-name=search-facet-displayer-portlet Portlet",
+		"javax.portlet.display-name=User Faceted Search Portlet",
 		"javax.portlet.init-param.template-path=/",
 		"javax.portlet.init-param.view-template=/view.jsp",
 		"javax.portlet.security-role-ref=power-user,user",
@@ -45,49 +77,43 @@ import java.util.stream.Collectors;
 	},
 	service = {Portlet.class, PortletSharedSearchContributor.class}
 )
-public class SearchFacetDisplayerPortlet extends MVCPortlet implements PortletSharedSearchContributor {
+public class SearchFacetDisplayerPortlet
+	extends MVCPortlet implements PortletSharedSearchContributor {
 
 	@Override
-	public void contribute(PortletSharedSearchSettings portletSharedSearchSettings) {
-		portletSharedSearchSettings.setKeywords(queryString);
+	public void contribute(
+		PortletSharedSearchSettings portletSharedSearchSettings) {
+
+		portletSharedSearchSettings.setKeywords(_queryString);
 		portletSharedSearchSettings.setPaginationDelta(Integer.MAX_VALUE);
+
 		SearchContext sc = portletSharedSearchSettings.getSearchContext();
 
-		Facet f = buildUserFacet(sc);
+		Facet f = _buildUserFacet(sc, _userFacetValues);
+
 		portletSharedSearchSettings.addFacet(f);
 	}
 
-	private String getUserFacetKey(){
+	private String _getUserFacetKey() {
 		UserFacetBuilder userFacetBuilder = new UserFacetBuilder(
-				userFacetFactory);
+			userFacetFactory);
+
 		return userFacetBuilder.build().getFieldName();
 	}
 
-	private Facet buildUserFacet(SearchContext sc) {
+	private Facet _buildUserFacet(SearchContext sc, String[] userNameValues) {
 		UserFacetBuilder userFacetBuilder = new UserFacetBuilder(
-				userFacetFactory);
+			userFacetFactory);
 
-		userFacetBuilder.setFrequencyThreshold(FREQ_THRESHOLD);
-		userFacetBuilder.setMaxTerms(MAX_TERMS);
-		userFacetBuilder.setSearchContext(sc);
-		userFacetBuilder.setSelectedUsers(userFacetValues);
-
-		return userFacetBuilder.build();
-	}
-
-	private Facet buildUserFacet(SearchContext sc, String[] userNameValues) {
-		UserFacetBuilder userFacetBuilder = new UserFacetBuilder(
-				userFacetFactory);
-
-		userFacetBuilder.setFrequencyThreshold(FREQ_THRESHOLD);
-		userFacetBuilder.setMaxTerms(MAX_TERMS);
+		userFacetBuilder.setFrequencyThreshold(_FREQ_THRESHOLD);
+		userFacetBuilder.setMaxTerms(_MAX_TERMS);
 		userFacetBuilder.setSearchContext(sc);
 		userFacetBuilder.setSelectedUsers(userNameValues);
 
 		return userFacetBuilder.build();
 	}
 
-	private List<String> getAllAvailableSearchFacets() {
+	private List<String> _getAllAvailableSearchFacets() {
 		return SearchFacetTracker.getSearchFacets().stream()
 			.map(SearchFacet::getFieldName)
 			.filter(Objects::nonNull)
@@ -95,94 +121,128 @@ public class SearchFacetDisplayerPortlet extends MVCPortlet implements PortletSh
 	}
 
 	@Override
-	public void doView(RenderRequest renderRequest, RenderResponse renderResponse) throws IOException, PortletException {
+	public void doView(
+			RenderRequest renderRequest, RenderResponse renderResponse)
+		throws IOException, PortletException {
 		PortletSharedSearchResponse portletSharedSearchResponse =
 			portletSharedSearchRequest.search(renderRequest);
 
-		List<String> allFacetNames = getAllAvailableSearchFacets();
+		List<String> allFacetNames = _getAllAvailableSearchFacets();
 
 		List<Facet> allFacets = allFacetNames.stream()
 				.map(portletSharedSearchResponse::getFacet)
 				.filter(Objects::nonNull)
 				.collect(Collectors.toList());
 
+		Map<String, List<TermCollector>> facetMapToTermsCollector =
+			_getFacetWithTerms(allFacets);
 
-		Map<String,List<TermCollector>> facetMapToTermsCollector =
-				getFacetWithTerms(allFacets);
-		renderRequest.setAttribute("facetsWithAvailableTerms",
-				facetMapToTermsCollector);
+		renderRequest.setAttribute(
+			"facetsWithAvailableTerms", facetMapToTermsCollector);
 
-		String userFacetKey = getUserFacetKey();
+		String userFacetKey = _getUserFacetKey();
+
 		String[] selectValues = renderRequest.getParameterValues(userFacetKey);
-		List<String> userSelectedTermValues =
-			selectValues==null? Collections.emptyList() :Arrays.asList(selectValues);
-		userFacetValues = selectValues==null?new String[0]:selectValues;
+
+		List<String> userSelectedTermValues;
+
+		if (selectValues == null) {
+			userSelectedTermValues = Collections.emptyList();
+		}
+		else {
+			userSelectedTermValues = Arrays.asList(selectValues);
+		}
+
+		_userFacetValues = selectValues == null ? new String[0] : selectValues;
+
 		renderRequest.setAttribute(
 			"userSelectedTermValues", userSelectedTermValues);
 
 		List<Document> docFromSearchResults =
 			portletSharedSearchResponse.getDocuments();
 
-		String jsonStr = getJsonifiedDocuments(docFromSearchResults);
+		String jsonStr = _getJsonifiedDocuments(docFromSearchResults);
 
-		//facetMapToTermsCollector.get("").get(0).
-		renderRequest.setAttribute("docFromSearchResults",
-			docFromSearchResults);
+		renderRequest.setAttribute("_queryString", _queryString);
+
+		renderRequest.setAttribute(
+			"docFromSearchResults", docFromSearchResults);
+
 		renderRequest.setAttribute("jsonStringSearchResults", jsonStr);
-		renderRequest.setAttribute("queryString", queryString);
 		super.doView(renderRequest, renderResponse);
 	}
 
-	private String getJsonifiedDocuments(List<Document> docFromSearchResults) throws JsonProcessingException {
-		return StringPool.APOSTROPHE
-            + DocumentJsonifier.listToJson(docFromSearchResults)
-            + StringPool.APOSTROPHE;
+	private String _getJsonifiedDocuments(List<Document> docFromSearchResults)
+		throws JsonProcessingException {
+		return StringPool.APOSTROPHE +
+			DocumentJsonifier.listToJson(docFromSearchResults) +
+				StringPool.APOSTROPHE;
 	}
 
-	private Map<String,List<TermCollector>> getFacetWithTerms(List<Facet> allFacets) {
-		Map<String,List<TermCollector>> fwt = new HashMap<>();
+	private Map<String, List<TermCollector>> _getFacetWithTerms(
+		List<Facet> allFacets) {
 
-		allFacets.forEach(facet -> {
-			List<TermCollector> tcs =
-				facet.getFacetCollector().getTermCollectors().stream()
+		Map<String, List<TermCollector>> fwt = new HashMap<>();
+
+		allFacets.forEach(
+			facet -> {
+				List<TermCollector> tcs = facet
+					.getFacetCollector()
+					.getTermCollectors()
+					.stream()
 					.filter(Objects::nonNull)
 					.collect(Collectors.toList());
-			if (!tcs.isEmpty())
-				fwt.put(facet.getFieldName(), tcs);
-		});
+
+				if (!tcs.isEmpty()) {
+					fwt.put(facet.getFieldName(), tcs);
+				}
+			});
 
 		return fwt;
 	}
 
 	@Reference(
-			cardinality = ReferenceCardinality.MULTIPLE,
-			policy = ReferencePolicy.DYNAMIC,
-			policyOption = ReferencePolicyOption.GREEDY,
-			unbind = "deleteFacetFactory"
+		cardinality = ReferenceCardinality.MULTIPLE,
+		policy = ReferencePolicy.DYNAMIC,
+		policyOption = ReferencePolicyOption.GREEDY,
+		unbind = "deleteFacetFactory"
 	)
 	protected void addFacetFactory(FacetFactory facetFactory) {
 		availableFacetFactories.add(facetFactory);
 	}
+
 	protected void deleteFacetFactory(FacetFactory facetFactory) {
 		availableFacetFactories.remove(facetFactory);
 	}
 
-
 	@Override
-	public void processAction(ActionRequest actionRequest, ActionResponse actionResponse) throws IOException, PortletException {
-		String userFacetKey = getUserFacetKey();
-		String [] requestUserFacetValues = actionRequest.getParameterValues(userFacetKey);
-		userFacetValues =
-			requestUserFacetValues == null?new String[0]:requestUserFacetValues;
-		queryString = actionRequest.getParameter("queryString");
-		actionResponse.setRenderParameter("queryString", queryString);
-		actionResponse.setRenderParameter(userFacetKey, userFacetValues);
+	public void processAction(
+			ActionRequest actionRequest, ActionResponse actionResponse)
+		throws IOException, PortletException {
+		String userFacetKey = _getUserFacetKey();
+
+		String[] requestUserFacetValues = actionRequest.getParameterValues(
+			userFacetKey);
+
+		if (requestUserFacetValues == null) {
+			_userFacetValues = new String[0];
+		}
+		else {
+			_userFacetValues = requestUserFacetValues;
+		}
+
+		_queryString = actionRequest.getParameter("queryString");
+
+		_queryString = _queryString == null ? "" : _queryString;
+
+		actionResponse.setRenderParameter("queryString", _queryString);
+
+		actionResponse.setRenderParameter(userFacetKey, _userFacetValues);
 	}
 
-	private static final int FREQ_THRESHOLD = 1;
+	private static final int _FREQ_THRESHOLD = 1;
 
-	private static final int MAX_TERMS = 10;
-
+	private static final int _MAX_TERMS = 10;
 
 	@Reference
 	protected PortletSharedSearchRequest portletSharedSearchRequest;
@@ -191,9 +251,10 @@ public class SearchFacetDisplayerPortlet extends MVCPortlet implements PortletSh
 
 	protected UserFacetFactory userFacetFactory = new UserFacetFactory();
 
-	private String queryString = StringPool.BLANK;
+	private String _queryString = StringPool.BLANK;
 
-	private String[] userFacetValues = new String[0];
+	private String[] _userFacetValues = new String[0];
 
-	private static final Log _log = LogFactoryUtil.getLog(SearchFacetDisplayerPortlet.class);
+	private static final Log _log = LogFactoryUtil.getLog(
+		SearchFacetDisplayerPortlet.class);
 }

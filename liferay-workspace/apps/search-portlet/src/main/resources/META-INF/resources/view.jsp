@@ -1,4 +1,21 @@
+<%--
+/**
+ * Copyright (c) 2000-present Liferay, Inc. All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
+ */
+--%>
+
 <%@ include file="/init.jsp" %>
+
 <%
 int curIndexForDocs = 0;
 List<String> userSelectedTermValues = (List<String>)renderRequest.getAttribute("userSelectedTermValues");
@@ -6,42 +23,45 @@ List<String> userSelectedTermValues = (List<String>)renderRequest.getAttribute("
 
 <portlet:actionURL name="mySearchBar" var="portletURL" />
 
-<form action="<%= portletURL %>" name="example" method="POST">
-    <input
-        name="<portlet:namespace/>queryString"
-        type="text"
-        value="${queryString}"
-        />
-    </input><br>
-    <c:forEach items="${facetsWithAvailableTerms}" var="curFacet">
-        <c:forEach items="${curFacet.value}" var="termEntry" varStatus = "status">
-        <%
-        TermCollector termEntry = (TermCollector)pageContext.findAttribute("termEntry");
-        %>
-        <input type="checkbox" name="<portlet:namespace/>${curFacet.key}" value="${termEntry.term}" <%= userSelectedTermValues.contains(termEntry.getTerm())?"checked":""%>> ${termEntry.term} (${termEntry.frequency})<br>
-        </c:forEach>
-        <br>
-    </c:forEach>
-    <input type="submit" value="Submit">
+<form action="<%= portletURL %>" method="POST" name="example">
+	<input
+		name="<portlet:namespace/>queryString"
+		type="text"
+		value="${queryString}"
+		/>
+	</input><br>
+	<c:forEach items="${facetsWithAvailableTerms}" var="curFacet">
+		<c:forEach items="${curFacet.value}" var="termEntry" varStatus="status">
+
+		<%
+		TermCollector termEntry = (TermCollector)pageContext.findAttribute("termEntry");
+		%>
+
+		<input name="<portlet:namespace/>${curFacet.key}" type="checkbox" value="${termEntry.term}" <%= userSelectedTermValues.contains(termEntry.getTerm())?"checked":"" %>> ${termEntry.term} (${termEntry.frequency})<br>
+		</c:forEach>
+
+		<br>
+	</c:forEach>
+
+	<input type="submit" value="Submit">
 </form>
 
 <liferay-ui:search-container delta="10">
-	<liferay-ui:search-container-results results="${docFromSearchResults}"/>
+	<liferay-ui:search-container-results results="${docFromSearchResults}" />
 
 	<liferay-ui:search-container-row
 		className="com.liferay.portal.kernel.search.Document"
 		keyProperty="UID"
 		modelVar="doc"
 	>
-
 		<liferay-ui:search-container-column-text
 			name="rownum"
-			value="<%= ++curIndexForDocs +"" %>"
+			value='<%= ++curIndexForDocs +"" %>'
 		/>
 
 		<liferay-ui:search-container-column-text
-			name="name"
-			value="<%= "example" %>"
+			name="values"
+			property="values"
 		/>
 
 		<liferay-ui:search-container-column-text
@@ -51,10 +71,9 @@ List<String> userSelectedTermValues = (List<String>)renderRequest.getAttribute("
 	</liferay-ui:search-container-row>
 
 	<liferay-ui:search-iterator />
-
 </liferay-ui:search-container>
 
-<svg id="graph-container" width="960" height="500"></svg>
+<svg height="500" id="graph-container" width="960"></svg>
 <%-- <script src="https://d3js.org/d3.v4.min.js"></script> --%>
 
 <script>
@@ -62,137 +81,21 @@ define._amd = define.amd;
 define.amd = false;
 </script>
 
-<script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3.v4.min.js" type="text/javascript"></script>
 
 <script>
 define.amd = define._amd;
 </script>
 
 <script>
-var jsonData = '{' +
-               '    "values": [{' +
-               '        "letter": "A",' +
-               '        "frequency":"0.08167"' +
-               '    },' +
-               '    {' +
-               '        "letter": "B",' +
-               '        "frequency":"0.01492"' +
-               '    },' +
-               '    {' +
-               '        "letter": "C",' +
-               '        "frequency":"0.02782"' +
-               '    },' +
-               '    {' +
-               '        "letter": "D",' +
-               '        "frequency":"0.04253"' +
-               '    },' +
-               '    {' +
-               '        "letter": "E",' +
-               '        "frequency":"0.12702"' +
-               '    },' +
-               '    {' +
-               '        "letter": "F",' +
-               '        "frequency":"0.02288"' +
-               '    },' +
-               '    {' +
-               '        "letter": "G",' +
-               '        "frequency":"0.02015"' +
-               '    },' +
-               '    {' +
-               '        "letter": "H",' +
-               '        "frequency":"0.06094"' +
-               '    },' +
-               '    {' +
-               '        "letter": "I",' +
-               '        "frequency":"0.06966"' +
-               '    },' +
-               '    {' +
-               '        "letter": "J",' +
-               '        "frequency":"0.00153"' +
-               '    },' +
-               '    {' +
-               '        "letter": "K",' +
-               '        "frequency":"0.00772"' +
-               '    },' +
-               '    {' +
-               '        "letter": "L",' +
-               '        "frequency":"0.04025"' +
-               '    },' +
-               '    {' +
-               '        "letter": "M",' +
-               '        "frequency":"0.02406"' +
-               '    },' +
-               '    {' +
-               '        "letter": "N",' +
-               '        "frequency":"0.06749"' +
-               '    },' +
-               '    {' +
-               '        "letter": "O",' +
-               '        "frequency":"0.07507"' +
-               '    },' +
-               '    {' +
-               '        "letter": "P",' +
-               '        "frequency":"0.01929"' +
-               '    },' +
-               '    {' +
-               '        "letter": "Q",' +
-               '        "frequency":"0.00095"' +
-               '    },' +
-               '    {' +
-               '        "letter": "R",' +
-               '        "frequency":"0.05987"' +
-               '    },' +
-               '    {' +
-               '        "letter": "S",' +
-               '        "frequency":"0.06327"' +
-               '    },' +
-               '    {' +
-               '        "letter": "T",' +
-               '        "frequency":"0.09056"' +
-               '    },' +
-               '    {' +
-               '        "letter": "U",' +
-               '        "frequency":"0.02758"' +
-               '    },' +
-               '    {' +
-               '        "letter": "V",' +
-               '        "frequency":"0.00978"' +
-               '    },' +
-               '    {' +
-               '        "letter": "W",' +
-               '        "frequency":"0.02360"' +
-               '    },' +
-               '    {' +
-               '        "letter": "X",' +
-               '        "frequency":"0.00150"' +
-               '    },' +
-               '    {' +
-               '        "letter": "Y",' +
-               '        "frequency":"0.01974"' +
-               '    },' +
-               '    {' +
-               '        "letter": "Z",' +
-               '        "frequency":"0.00074"' +
-               '    }]' +
-               '}';
-// https://github.com/d3/d3-format
-/*
-var axisProperties = {
-    axisxfield: 'letter',
-    axisylabel: 'Frequency',
-    axisyfield: 'frequency',
-    axisyd3format: '%'
-}
-*/
 //d3.json(url[, callback])
-
 
 jsonData = ${jsonStringSearchResults};
 var axisProperties = {
-    axisxfield: 'portletId',
-    axisylabel: 'Number Of Fields',
-    axisyfield: 'numFields',
-    axisyd3format: 'd'
+	axisxfield: 'portletId',
+	axisylabel: 'Number Of Fields',
+	axisyfield: 'numFields',
+	axisyd3format: 'd'
 }
 jsonData = JSON.parse(jsonData);
 
