@@ -23,59 +23,68 @@ List<String> userSelectedTermValues = (List<String>)renderRequest.getAttribute("
 
 <portlet:actionURL name="mySearchBar" var="portletURL" />
 
-<form action="<%= portletURL %>" method="POST" name="example">
-	<input
-		name="<portlet:namespace/>queryString"
-		type="text"
-		value="${queryString}"
-		/>
-	</input><br>
-	<c:forEach items="${facetsWithAvailableTerms}" var="curFacet">
-		<c:forEach items="${curFacet.value}" var="termEntry" varStatus="status">
+<div class="form-group">
+    <form action="<%= portletURL %>" method="POST" name="example">
+        <input
+            name="<portlet:namespace/>queryString"
+            type="text"
+            value="${queryString}"
+            />
+        </input><br>
+        <c:forEach items="${facetsWithAvailableTerms}" var="curFacet">
+            <c:forEach items="${curFacet.value}" var="termEntry" varStatus="status">
 
-		<%
-		TermCollector termEntry = (TermCollector)pageContext.findAttribute("termEntry");
-		%>
+            <%
+            TermCollector termEntry = (TermCollector)pageContext.findAttribute("termEntry");
+            %>
 
-		<input name="<portlet:namespace/>${curFacet.key}" type="checkbox" value="${termEntry.term}" <%= userSelectedTermValues.contains(termEntry.getTerm())?"checked":"" %>> ${termEntry.term} (${termEntry.frequency})<br>
-		</c:forEach>
+            <input name="<portlet:namespace/>${curFacet.key}" type="checkbox" value="${termEntry.term}" <%= userSelectedTermValues.contains(termEntry.getTerm())?"checked":"" %>> ${termEntry.term} (${termEntry.frequency})<br>
+            </c:forEach>
 
-		<br>
-	</c:forEach>
+            <br>
+        </c:forEach>
+        <div class="form-inline">
+            <input  type="submit" class="btn btn-info" value="Submit">
+            <c:if test="${not empty docFromSearchResults}" >
+            <button type="button" class="btn btn-info pull-right" data-toggle="collapse" data-target="#<portlet:namespace/>scDiv">View Results Panel</button>
+            </c:if>
+        </div>
+    </form>
+</div>
+<hr>
+<div id="<portlet:namespace/>scDiv" class="collapse">
+    <liferay-ui:search-container delta="10">
+        <liferay-ui:search-container-results results="${docFromSearchResults}" />
 
-	<input type="submit" value="Submit">
-</form>
+        <liferay-ui:search-container-row
+            className="com.liferay.portal.kernel.search.Document"
+            keyProperty="UID"
+            modelVar="doc"
+        >
+            <liferay-ui:search-container-column-text
+                name="Entry Number"
+                value='<%= ++curIndexForDocs +"" %>'
+            />
 
-<liferay-ui:search-container delta="10">
-	<liferay-ui:search-container-results results="${docFromSearchResults}" />
+            <liferay-ui:search-container-column-text
+                name="Document Type"
+                value="<%= doc.getFields().get(\"entryClassName\").getValue() %>"
+            />
 
-	<liferay-ui:search-container-row
-		className="com.liferay.portal.kernel.search.Document"
-		keyProperty="UID"
-		modelVar="doc"
-	>
-		<liferay-ui:search-container-column-text
-			name="rownum"
-			value='<%= ++curIndexForDocs +"" %>'
-		/>
+            <liferay-ui:search-container-column-text
+                name="UID"
+                property="UID"
+            />
+        </liferay-ui:search-container-row>
 
-		<liferay-ui:search-container-column-text
-			name="values"
-			property="values"
-		/>
+        <liferay-ui:search-iterator />
+    </liferay-ui:search-container>
+</div>
+<div>
+    <svg height="500" id="graph-container" width="960"></svg>
+</div>
 
-		<liferay-ui:search-container-column-text
-			name="UID"
-			property="UID"
-		/>
-	</liferay-ui:search-container-row>
-
-	<liferay-ui:search-iterator />
-</liferay-ui:search-container>
-
-<svg height="500" id="graph-container" width="960"></svg>
-<%-- <script src="https://d3js.org/d3.v4.min.js"></script> --%>
-
+<%-- https://dev.liferay.com/develop/tutorials/-/knowledge_base/7-0/using-external-libraries#loading-libraries-as-browser-globals --%>
 <script>
 define._amd = define.amd;
 define.amd = false;
@@ -90,14 +99,11 @@ define.amd = define._amd;
 <script>
 //d3.json(url[, callback])
 
-jsonData = ${jsonStringSearchResults};
-var axisProperties = {
-	axisxfield: 'portletId',
-	axisylabel: 'Number Of Fields',
-	axisyfield: 'numFields',
-	axisyd3format: 'd'
-}
+var jsonData = ${jsonStringSearchResults};
 jsonData = JSON.parse(jsonData);
+
+var axisProperties = ${jsonStrAxisProperties}
+axisProperties = JSON.parse(axisProperties);
 
 var margins = {top: 20, right: 20, bottom: 150, left: 150};
 

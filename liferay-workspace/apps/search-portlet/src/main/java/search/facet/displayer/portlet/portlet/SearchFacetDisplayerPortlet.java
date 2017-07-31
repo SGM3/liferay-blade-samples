@@ -161,14 +161,30 @@ public class SearchFacetDisplayerPortlet
 		List<Document> docFromSearchResults =
 			portletSharedSearchResponse.getDocuments();
 
-		String jsonStr = _getJsonifiedDocuments(docFromSearchResults);
-
-		renderRequest.setAttribute("_queryString", _queryString);
+		renderRequest.setAttribute("queryString", _queryString);
 
 		renderRequest.setAttribute(
 			"docFromSearchResults", docFromSearchResults);
 
-		renderRequest.setAttribute("jsonStringSearchResults", jsonStr);
+		D3JsonTracker jsonTracker = new D3JsonTracker(
+			"portletId", "numFields", "Number Of Fields", "d");
+
+		facetMapToTermsCollector.values().forEach(
+			termCollectors -> termCollectors.forEach(
+            	tc -> jsonTracker.addEntry(
+            		tc.getTerm(), "" + tc.getFrequency())
+        ));
+
+		String jsonStrAggregate = jsonTracker.getJsonList();
+
+		renderRequest.setAttribute(
+			"jsonStringSearchResults", jsonStrAggregate);
+
+		String jsonStrAxisProperties = jsonTracker.getJsonAxisProperties();
+
+		renderRequest.setAttribute(
+			"jsonStrAxisProperties", jsonStrAxisProperties);
+
 		super.doView(renderRequest, renderResponse);
 	}
 
@@ -243,6 +259,13 @@ public class SearchFacetDisplayerPortlet
 	private static final int _FREQ_THRESHOLD = 1;
 
 	private static final int _MAX_TERMS = 10;
+
+	private static final String _MM = "{" +
+			"axisxfield: 'portletId'," +
+			"axisylabel: 'Number Of Each Term'," +
+			"axisyfield: 'numFields'," +
+			"axisyd3format: 'd'" +
+			"}";
 
 	@Reference
 	protected PortletSharedSearchRequest portletSharedSearchRequest;

@@ -14,7 +14,7 @@ function renderHistogram(graphTarget, data, axisProperties, margins){
     var g = svg.append("g")
         .attr("transform", "translate(" + margins.left + "," + margins.top + ")");
 
-    var convertedValues = convertNumbersInRow(data['values'], axisProperties['axisyfield']);
+    var convertedValues = convertNumbersInRow(data['entries'], axisProperties['axisyfield']);
 
     graphCallBack(convertedValues, x, y, g, axisProperties);
 
@@ -37,7 +37,7 @@ function graphCallBack(data, x, y, g, axisProperties) {
 
   g.append("g")
       .attr("class", "axis axis--y")
-      .call(d3.axisLeft(y).ticks(10, axisProperties['axisyd3format']));
+      .call(d3.axisLeft(y).ticks(axisProperties['axisyticks'], axisProperties['axisyd3format']));
 
   g.append("text")
       .attr("transform", "rotate(-90)")
